@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:twitter_demo/models/tweet.dart';
 import 'package:twitter_demo/pages/create.dart';
 import 'package:twitter_demo/pages/settings.dart';
+import 'package:twitter_demo/providers/tweet_provider.dart';
 import 'package:twitter_demo/providers/user_provider.dart';
 
 class Home extends ConsumerWidget {
@@ -13,39 +15,78 @@ class Home extends ConsumerWidget {
     LocalUser currentUser = ref.watch(userProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Home"),
-        leading: Builder(
-          builder: (context) {
-            return GestureDetector(
-              onTap: ()=>Scaffold.of(context).openDrawer(),
-              child: Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: CircleAvatar(
-                  backgroundImage: NetworkImage(
-                      ref.watch(userProvider)
-                          .user.profilePic),
-                ),
-              ),
-            );
-          }
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4.0),
+          child: Container(
+            color: Colors.grey,
+            height: 1,
+          ),
         ),
+        title: const Image(
+          image: AssetImage(// add assets to pubspec.yaml file
+              'assets/twitter_blue.png'),
+          width: 50,
+        ),
+        leading: Builder(builder: (context) {
+          return GestureDetector(
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: CircleAvatar(
+                backgroundImage:
+                    NetworkImage(ref.watch(userProvider).user.profilePic),
+              ),
+            ),
+          );
+        }),
       ),
-      body: Column(children: [
-        Text(currentUser.user.email),
-        Text(currentUser.user.name),
-      ],),
+      body: ref.watch(feedProvider).when(
+          data: (List<Tweet> tweets) {
+            return ListView.separated(
+              separatorBuilder: (context, index) => const Divider(
+                color: Colors.black,
+              ),
+              itemCount: tweets.length,
+              itemBuilder: (context, count) {
+                return ListTile(
+                  leading: CircleAvatar(
+                    foregroundImage: NetworkImage(
+                      tweets[count].profilePic,
+                    ),
+                  ),
+                  title: Text(
+                    tweets[count].name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    tweets[count].tweet,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          error: (error, stackTrace) => const Center(
+                child: Text("Error"),
+              ),
+          loading: () => const CircularProgressIndicator()),
       drawer: Drawer(
         child: Column(
           children: [
             Image.network(
-                currentUser.user.profilePic,
+              currentUser.user.profilePic,
             ),
             ListTile(
               title: Text(
                 "Hello ${currentUser.user.name}",
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                 ),
               ),
             ),
@@ -67,11 +108,13 @@ class Home extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () {
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: ((context) => CreateTweet())));
-      },
-      child: const Icon(Icons.add),),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: ((context) => CreateTweet())));
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
